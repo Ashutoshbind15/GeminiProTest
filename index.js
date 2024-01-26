@@ -121,6 +121,45 @@ const generateSingleTextResponse = async (
   return text;
 };
 
+const streamChunkHandler = (chunk) => {
+  return chunk.text();
+};
+
+async function handleStreamResponse(stream, streamChunkHandler) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+
+    stream.on("data", (chunk) => {
+      chunks.push(streamChunkHandler(chunk));
+    });
+
+    stream.on("end", () => {
+      const data = Buffer.concat(chunks);
+      resolve(data.toString()); // Assuming it's a text stream, convert it to a string and resolve the promise
+    });
+
+    stream.on("error", (error) => {
+      reject(error);
+    });
+  });
+}
+
+const simplerStreamHandler = async (stream) => {
+  let res = "";
+  for await (const chunk of stream) {
+    res += streamChunkHandler(chunk);
+    console.log(res);
+  }
+  return res;
+};
+
+const generateSingleTextStreamResponse = async (prompt) => {
+  const model = generativeAI.getGenerativeModel({ model: "gemini-pro" });
+  const responseStream = await model.generateContentStream(prompt);
+  const res = await simplerStreamHandler(responseStream.stream);
+  return res;
+};
+
 const getChats = async () => {
   const chats = await Chat.find();
   return chats;
@@ -139,7 +178,11 @@ app.get("/", async (req, res) => {
   //     msg, id
   //   );
 
-  return res.status(200).send("hello");
+  //   const streamResponse = await generateSingleTextStreamResponse(
+  //     "Write a spooky yet funny story."
+  //   );
+
+  return res.status(200).send(streamResponse);
 });
 
 app.listen(3000, () => {
