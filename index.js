@@ -87,16 +87,27 @@ const generateChatResponses = async (prompt, chatId = -1, config = {}) => {
 
   const result = await chat.sendMessage(prompt);
 
+  const userMessage = {
+    role: "user",
+    parts: prompt,
+  };
+
+  const response = await result.response;
+  const text = response.text();
+
+  const modelMessage = {
+    role: "model",
+    parts: text,
+  };
+
   const updatedChat = await Chat.findByIdAndUpdate(
     chatId,
-    { $push: { messages: result } },
+    { $push: { messages: [userMessage, modelMessage] } },
     { new: true }
   );
 
   console.log(updatedChat);
 
-  const response = await result.response;
-  const text = response.text();
   return text;
 };
 
@@ -123,8 +134,12 @@ app.get("/chat", async (req, res) => {
 });
 
 app.get("/", async (req, res) => {
-  const text = await generateSingleTextResponse();
-  return res.status(200).send(text);
+  //   const text = await generateSingleTextResponse();
+  //   const chatResponse = await generateChatResponses(
+  //     msg, id
+  //   );
+
+  return res.status(200).send("hello");
 });
 
 app.listen(3000, () => {
